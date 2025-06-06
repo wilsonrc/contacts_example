@@ -29,18 +29,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.contacts_example.ui.theme.Contacts_exampleTheme
 
-// Modelo de datos simple para el contacto
 data class Contact(
     val id: String,
     val firstName: String,
     val lastName: String,
-    val phoneNumber: String
+    val phoneNumber: String,
+    val avatarUrl: String? = null // Add this line, make it nullable if avatar isn't mandatory
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactListScreen(
-    // Normalmente, estos vendrían de un ViewModel
     contacts: List<Contact>,
     onAddNewContact: () -> Unit,
     onDeleteSelectedContacts: () -> Unit, // Se llamaría cuando se presiona borrar

@@ -39,11 +39,22 @@ android {
     buildFeatures {
         compose = true
     }
+    packagingOptions {
+        resources {
+            excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            // You might also see conflicts with other OSGI-INF files, add them here too if needed:
+            // excludes += '/META-INF/OSGI-INF/MANIFEST.MF'
+            // excludes += '/META-INF/OSGI-INF/permissions.perm'
+            // etc.
+        }
+    }
+
 }
 
 dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.hilt.android)
+    implementation(libs.identity.jvm)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
