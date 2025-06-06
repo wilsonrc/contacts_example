@@ -31,7 +31,7 @@ import com.example.contacts_example.ui.theme.Contacts_exampleTheme
 import kotlinx.coroutines.launch
 
 // --- Constants ---
-private const val RANDOM_AVATAR_BASE_URL = "https://picsum.photos/300/300?random="
+private const val RANDOM_AVATAR_BASE_URL = "https://picsum.photos/300/300"
 
 // --- Screen Composable ---
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,16 +134,6 @@ fun ContactCreationScreen(
                         coroutineScope.launch {
                             snackbarHostState.showSnackbar(
                                 message = "Por favor, completa todos los campos.",
-                                duration = SnackbarDuration.Short
-                            )
-                        }
-                        return@Button
-                    }
-                    // Check if avatar is still loading or if the URL is a placeholder/blank
-                    if (state.isLoadingAvatar || state.avatarUrl.isBlank() || state.avatarUrl.startsWith(RANDOM_AVATAR_BASE_URL)) {
-                        coroutineScope.launch {
-                            snackbarHostState.showSnackbar(
-                                message = "Espera a que cargue el avatar o intenta generar uno nuevo.",
                                 duration = SnackbarDuration.Short
                             )
                         }

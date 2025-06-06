@@ -1,18 +1,28 @@
 package com.example.contacts_example.ui
 
 import android.annotation.SuppressLint
+import android.util.Log
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,17 +34,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImagePainter // Make sure this is imported
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import com.example.contacts_example.R // Assuming R is in this package
 import com.example.contacts_example.ui.theme.Contacts_exampleTheme
+
+const val RANDOM_AVATAR_BASE_URL = "https://picsum.photos/200/300" // Example placeholder
 
 data class Contact(
     val id: String,
     val firstName: String,
     val lastName: String,
     val phoneNumber: String,
-    val avatarUrl: String? = null // Add this line, make it nullable if avatar isn't mandatory
+    val avatarUrl: String? = null
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,8 +63,7 @@ data class Contact(
 fun ContactListScreen(
     contacts: List<Contact>,
     onAddNewContact: () -> Unit,
-    onDeleteSelectedContacts: () -> Unit, // Se llamaría cuando se presiona borrar
-    // Para la búsqueda
+    onDeleteSelectedContacts: () -> Unit,
     searchTerm: String,
     onSearchTermChange: (String) -> Unit
 ) {
@@ -55,8 +75,8 @@ fun ContactListScreen(
                 title = "Contactos",
                 onAddNewContact = onAddNewContact,
                 onDeleteSelectedContacts = {
-                    onDeleteSelectedContacts() // Llama a la lógica de borrado
-                    selectedContactIds = emptySet() // Limpia la selección después de borrar
+                    onDeleteSelectedContacts()
+                    selectedContactIds = emptySet()
                 },
                 isDeleteEnabled = selectedContactIds.isNotEmpty()
             )
@@ -85,7 +105,7 @@ fun ContactListScreen(
                         selectedContactIds - contactId
                     }
                 },
-                modifier = Modifier.weight(1f) // Para que la lista ocupe el espacio restante
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -146,7 +166,6 @@ fun ContactLazyList(
     modifier: Modifier = Modifier
 ) {
     if (contacts.isEmpty()) {
-        // Podrías mostrar un mensaje de "No hay contactos" aquí
         Text(
             text = "No se encontraron contactos.",
             modifier = modifier.padding(16.dp)
@@ -167,6 +186,65 @@ fun ContactLazyList(
     }
 }
 
+@Composable
+fun AvatarImage(
+    avatarUrl: String,
+    isLoadingFromParent: Boolean,
+    onImageClick: () -> Unit,
+    onCoilLoadingStateChange: (isLoading: Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val placeholderPainter = painterResource(id = R.drawable.ic_avatar_placeholder)
+
+    val painter = rememberAsyncImagePainter(
+        model = ImageRequest.Builder(context)
+            .data(avatarUrl.ifBlank { RANDOM_AVATAR_BASE_URL }) // Use placeholder if URL is blank
+            .crossfade(true)
+            // .size(coil.size.Size.ORIGINAL) // Optional: If you need to specify size for Coil
+            .build(),
+        placeholder = placeholderPainter, // Pass placeholder to rememberAsyncImagePainter
+        error = placeholderPainter,       // Pass error to rememberAsyncImagePainter
+        // fallback = placeholderPainter, // Optional: for a different image if model is null
+        onLoading = {
+            onCoilLoadingStateChange(true) // Inform parent Coil is loading
+            Log.d("AvatarImage", "Coil: Loading image...")
+        },
+        onSuccess = { successState ->
+            onCoilLoadingStateChange(false) // Inform parent Coil finished loading
+            Log.d("AvatarImage", "Coil: Image loaded successfully for URL: ${successState.result.request.data}")
+        },
+        onError = { errorState ->
+            onCoilLoadingStateChange(false) // Inform parent Coil finished with error
+            Log.e("AvatarImage", "Coil: Error loading image - ${errorState.result.throwable}")
+        }
+    )
+
+    Box(
+        modifier = modifier
+            .clip(CircleShape) // Clip before background and clickable for better touch ripple effect
+            .background(MaterialTheme.colorScheme.surfaceVariant) // Background for the circle
+            .clickable(onClick = onImageClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = "Avatar del contacto (toca para cambiar)",
+            contentScale = ContentScale.Crop, // Crop the image to fill the circle
+            modifier = Modifier.fillMaxSize() // Image fills the Box
+        )
+
+        // Show progress indicator if parent expects loading AND Coil is actually loading
+        // Now we directly check the painter's state
+        if (isLoadingFromParent && painter.state is AsyncImagePainter.State.Loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(48.dp), // Adjust size as needed
+                color = MaterialTheme.colorScheme.onSurfaceVariant // Or primary
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactItem(
@@ -174,44 +252,26 @@ fun ContactItem(
     isSelected: Boolean,
     onSelectedChange: (Boolean) -> Unit
 ) {
-    // Implementación básica del item. Puedes hacerlo más complejo
-    // con selección, avatar, etc.
-    androidx.compose.material3.ListItem(
+    ListItem(
         headlineContent = { Text("${contact.firstName} ${contact.lastName}") },
         supportingContent = { Text(contact.phoneNumber) },
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         leadingContent = {
-            // Aquí podrías poner un Checkbox para la selección múltiple
-            // o un avatar del contacto
-            androidx.compose.material3.Checkbox(
+            AvatarImage(
+                avatarUrl = contact.avatarUrl ?: RANDOM_AVATAR_BASE_URL, // Provide a fallback
+                isLoadingFromParent = false, // Default for list items
+                onImageClick = { /* No action for avatar click in list item for now */ },
+                onCoilLoadingStateChange = { /* List item doesn't directly react to this */ },
+                modifier = Modifier.size(40.dp) // Standard list item avatar size
+            )
+        },
+        trailingContent = {
+            Checkbox(
                 checked = isSelected,
                 onCheckedChange = onSelectedChange
             )
         }
-        // trailingContent = { Icon(Icons.Filled.MoreVert, contentDescription = "Más opciones") } // Opcional
     )
-    // Para una implementación más simple sin ListItem:
-    /*
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelectedChange(!isSelected) } // Permite seleccionar/deseleccionar
-            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else Color.Transparent)
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Checkbox para selección (opcional, como buena práctica)
-        Checkbox(
-            checked = isSelected,
-            onCheckedChange = onSelectedChange
-        )
-        Spacer(Modifier.width(16.dp))
-        Column {
-            Text(text = "${contact.firstName} ${contact.lastName}", style = MaterialTheme.typography.bodyLarge)
-            Text(text = contact.phoneNumber, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-    */
 }
 
 
@@ -222,9 +282,9 @@ fun ContactItem(
 fun ContactListScreenPreview() {
     val sampleContacts = remember {
         mutableStateOf(listOf(
-            Contact("1", "Menganito", "De Tal", "600111222"),
+            Contact("1", "Menganito", "De Tal", "600111222", avatarUrl = RANDOM_AVATAR_BASE_URL),
             Contact("2", "Fulanita", "Mengánez", "600333444"),
-            Contact("3", "Perenganito", "López", "600555666")
+            Contact("3", "Perenganito", "López", "600555666", avatarUrl = RANDOM_AVATAR_BASE_URL)
         ))
     }
     var searchTerm by remember { mutableStateOf("") }
@@ -249,7 +309,7 @@ fun ContactListScreenPreview() {
 fun ContactItemPreview() {
     Contacts_exampleTheme {
         ContactItem(
-            contact = Contact("1", "Menganito", "De Tal", "600111222"),
+            contact = Contact("1", "Menganito", "De Tal", "600111222", avatarUrl = RANDOM_AVATAR_BASE_URL),
             isSelected = false,
             onSelectedChange = {}
         )
@@ -261,7 +321,7 @@ fun ContactItemPreview() {
 fun ContactItemSelectedPreview() {
     Contacts_exampleTheme {
         ContactItem(
-            contact = Contact("1", "Menganito", "De Tal", "600111222"),
+            contact = Contact("1", "Menganito", "De Tal", "600111222", avatarUrl = RANDOM_AVATAR_BASE_URL),
             isSelected = true,
             onSelectedChange = {}
         )

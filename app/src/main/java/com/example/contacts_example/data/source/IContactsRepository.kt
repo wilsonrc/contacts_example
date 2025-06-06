@@ -1,7 +1,7 @@
-package com.example.contacts.data.sources
+package com.example.contacts_example.data.source
 
-import com.example.contacts_example.data.Contact
 import com.example.contacts_example.data.ContactResults
+import com.example.contacts_example.ui.Contact
 
 interface IContactsRepository {
     suspend fun getContacts(): Result<ContactResults>

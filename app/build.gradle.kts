@@ -52,6 +52,15 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+
+    // Optional - Kotlin Extensions and Coroutines support for Room
+    implementation(libs.androidx.room.ktx)
+
+    // Optional - Test helpers
+    testImplementation(libs.androidx.room.testing)
+
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.hilt.android)
     implementation(libs.identity.jvm)

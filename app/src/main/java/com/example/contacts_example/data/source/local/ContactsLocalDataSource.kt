@@ -1,35 +1,70 @@
 package com.example.contacts_example.data.source.local
 
-import com.example.contacts.data.sources.IContactsDataSource
-import com.example.contacts_example.data.Contact
+import com.example.contacts_example.data.source.IContactsDataSource
 import com.example.contacts_example.data.ContactResults
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class ContactsLocalDataSource : IContactsDataSource {
+class ContactsLocalDataSource(
+    private val contactDao: ContactDao // Inject the DAO
+) : IContactsDataSource {
 
-    // Implement the methods from IContactsDataSource here
-    // For example:
-    override suspend fun getContacts(): Result<ContactResults> {
-        // Logic to retrieve contacts from local storage
-        return Result.success(ContactResults(0, emptyList()))
+    override suspend fun getContacts(): Result<ContactResults> = withContext(Dispatchers.IO) {
+        try {
+            val contacts = contactDao.getAllContacts()
+            Result.success(ContactResults(resultCount = contacts.size, results = contacts))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun getContactById(id: String): Result<Contact> {
-        // Logic to retrieve a contact by ID from local storage
-        return Result.success(Contact("", "", ""))
+    override suspend fun getContactById(id: String): Result<Contact> =
+        withContext(Dispatchers.IO) {
+        try {
+            val contact = contactDao.getContactById(id)
+            if (contact != null) {
+                Result.success(contact)
+            } else {
+                Result.failure(Exception("Contact not found with id: $id"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun addContact(contact: Contact): Result<Unit> {
-        // Logic to add a contact to local storage
-        return Result.success(Unit)
+    override suspend fun addContact(contact: Contact): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            contactDao.insertContact(contact)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun updateContact(contact: Contact): Result<Unit> {
-        // Logic to update a contact in local storage
-        return Result.success(Unit)
+    override suspend fun updateContact(contact: Contact): Result<Unit> =
+        withContext(Dispatchers.IO) {
+        try {
+            val updatedRows = contactDao.updateContact(contact)
+            if (updatedRows > 0) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to update contact or contact not found."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
-    override suspend fun deleteContact(id: String): Result<Unit> {
-        // Logic to delete a contact from local storage
-        return Result.success(Unit)
+    override suspend fun deleteContact(id: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val deletedRows = contactDao.deleteContactById(id)
+            if (deletedRows > 0) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to delete contact or contact not found."))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }

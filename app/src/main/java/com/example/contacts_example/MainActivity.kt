@@ -17,7 +17,6 @@ import com.example.contacts_example.ui.components.creation.ContactCreationScreen
 import com.example.contacts_example.ui.theme.Contacts_exampleTheme
 import kotlin.text.contains
 
-// Define a simple sealed class for screen navigation
 sealed class Screen {
     object ContactList : Screen()
     object CreateContact : Screen()

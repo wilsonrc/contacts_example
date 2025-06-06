@@ -2,7 +2,6 @@ package com.example.contacts_example.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.contacts_example.data.Contact
 import com.example.contacts_example.data.source.ContactsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +12,7 @@ import javax.inject.Inject
 
 // Sealed interface for UI State
 sealed interface ContactsUiState {
-    data class Success(val contacts: List<Contact>) : ContactsUiState
+    data class Success(val contacts: List<com.example.contacts_example.data.source.local.Contact>) : ContactsUiState
     data class Error(val message: String) : ContactsUiState
     object Loading : ContactsUiState
     object Empty : ContactsUiState // Represents an initial or empty state
@@ -67,11 +66,11 @@ class ContactsViewModel @Inject constructor(
 
             // Construct the Contact object according to your ContactResult.kt definition
             val newContact = Contact(
+                id = "0", // Assuming ID is auto-generated, set to 0 or leave it out if not needed
                 firstName = firstName,
                 lastName = lastName,
-                phoneNumber = phone
-                // If your Contact data class evolves to include an ID or other fields,
-                // you'll need to adjust this construction accordingly.
+                phoneNumber = phone,
+                avatarUrl = ""
             )
 
             val result = contactsRepository.addContact(newContact)
