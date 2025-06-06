@@ -42,6 +42,7 @@ android {
 }
 
 dependencies {
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)
